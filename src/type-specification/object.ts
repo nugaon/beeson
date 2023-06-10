@@ -25,7 +25,7 @@ import {
   SEGMENT_SIZE,
 } from '../utils'
 
-const OBJECT_TYPE_DEF_LENGTH = 8
+export const OBJECT_TYPE_DEF_LENGTH = 8
 
 type TypeDefElement = Bytes<8>
 
@@ -309,7 +309,7 @@ interface RDeserializeTypeSpecLengths {
   offset: number
 }
 
-function deserializeTypeSpecLengths(data: Uint8Array): RDeserializeTypeSpecLengths {
+export function deserializeTypeSpecLengths(data: Uint8Array): RDeserializeTypeSpecLengths {
   let offset = 0
   // N
   const typeDefArrayLength = deserializeUint16(data.slice(offset, offset + 2) as Bytes<2>)
