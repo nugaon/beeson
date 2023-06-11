@@ -26,6 +26,7 @@ import {
   isNull,
   isNumber,
   isObject,
+  keccak256Hash,
   segmentPaddingFromRight,
   SEGMENT_SIZE,
 } from '../utils'
@@ -42,14 +43,9 @@ import {
   serializeNullableObject,
   serializeObject,
 } from './object'
-import { makeChunkedFile } from '@fairdatasociety/bmt-js'
+import { assertVersion, deserializeVersion, Header, serializeVersion, Version } from './header'
 
 export const HEADER_BYTE_LENGTH = 32
-const BEESON_HEADER_ID = 1
-
-export enum Version {
-  unpackedV0_1 = '0.1.0',
-}
 
 export interface TypeDefinitionA {
   segmentLength: number
@@ -101,11 +97,6 @@ function isDnaObjectType<T extends Type>(
   type: T,
 ): typeSpecificationObject is DnaObject<T> {
   return typeSpecificationObject.type === type
-}
-
-export interface Header<T extends Type> {
-  version: Version
-  type: T
 }
 
 type TypeDefinitions<T extends Type> = T extends Type.array | Type.nullableArray
@@ -423,9 +414,7 @@ export class TypeManager<T extends Type> {
       this.superBeeSon = false
       const superBeeSonHeader = this.typeHeader()
       this.superBeeSon = true
-      const dnaReference = makeChunkedFile(
-        new Uint8Array([...superBeeSonHeader, ...typeSpecification]),
-      ).address()
+      const dnaReference = keccak256Hash(superBeeSonHeader, typeSpecification)
 
       return new Uint8Array([...header, ...dnaReference])
     }
@@ -453,7 +442,7 @@ export class TypeManager<T extends Type> {
     if (superBeeSon) this.superBeeSon = true
 
     return {
-      swarmAddress: makeChunkedFile(bytes).address(),
+      swarmAddress: keccak256Hash(bytes),
       bytes,
     }
   }
@@ -487,7 +476,7 @@ export class TypeManager<T extends Type> {
       const typeSepRef = data.slice(0, SEGMENT_SIZE)
       if (!isReference(typeSepRef)) {
         throw new Error(
-          `TypeManager deserialization error: header is SuperBeeSonType but its payload is not a Swarm Reference`,
+          `TypeManager deserialization error: header is SuperBeeSonType but its payload is not a Reference`,
         )
       }
       if (!storageLoader) {
@@ -756,45 +745,4 @@ function identifyType<T extends JsonValue>(json: T): ValueType<T> {
   }
 
   return type as ValueType<T>
-}
-
-function serializeVersion(version: Version): Bytes<4> {
-  return new Bytes([1, ...serializeVersionSemver(version)])
-}
-
-function deserializeVersion(bytes: Bytes<4>): Version {
-  if (bytes[0] !== BEESON_HEADER_ID) {
-    throw new Error(`Error at version deserialization: ${bytes[0]} is not a BeeSon type in the header`)
-  }
-
-  const version = deserializeVersionSemver(bytes.slice(1) as Bytes<3>)
-
-  if (version !== Version.unpackedV0_1) {
-    throw new Error(`Error at version deserialization: ${version} is not an existing BeeSon version`)
-  }
-
-  return version
-}
-
-function serializeVersionSemver(version: Version): Bytes<3> {
-  const versionArray = version.split('.').map(v => Number(v))
-
-  return new Bytes([versionArray[0], versionArray[1], versionArray[2]])
-}
-
-function deserializeVersionSemver(bytes: Bytes<3>): Version {
-  const strings: string[] = []
-  for (const byte of bytes) {
-    strings.push(byte.toString())
-  }
-
-  return strings.join('.') as Version
-}
-
-function isVersion(value: unknown): value is Version {
-  return Object.values(Version).includes(value as Version)
-}
-
-function assertVersion(value: unknown): asserts value is Version {
-  if (!isVersion) throw new Error(`Not valid BeeSon version: ${value}`)
 }

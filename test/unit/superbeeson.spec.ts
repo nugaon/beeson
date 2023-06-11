@@ -1,7 +1,6 @@
-import { makeChunkedFile } from '@fairdatasociety/bmt-js'
 import { BeeSon, Type } from '../../src'
 import { HEADER_BYTE_LENGTH, TypeManager } from '../../src/type-specification'
-import { createStorage, SEGMENT_SIZE } from '../../src/utils'
+import { createStorage, keccak256Hash, SEGMENT_SIZE } from '../../src/utils'
 export { Reference } from '../../src/types'
 
 interface TestBuddy {
@@ -38,7 +37,7 @@ describe('superbeeson', () => {
     )
 
     // check the parts of the BeeSon corresponds to its byte serialisation indices
-    const typeSpecificationAddress = makeChunkedFile(beesonTypeSpecBytes).address()
+    const typeSpecificationAddress = keccak256Hash(beesonTypeSpecBytes)
     expect(typeSpecificationAddress).toStrictEqual(
       superBeesonBytes.slice(HEADER_BYTE_LENGTH, HEADER_BYTE_LENGTH + SEGMENT_SIZE),
     )
@@ -52,7 +51,7 @@ describe('superbeeson', () => {
     const storage = createStorage()
     const beeson = new BeeSon<TestDataMain>({ json })
     const beesonTypeSpecBytes = beeson.typeManager.serialize()
-    const typeRef = makeChunkedFile(beesonTypeSpecBytes).address()
+    const typeRef = keccak256Hash(beesonTypeSpecBytes)
     storage.storageSaverSync(typeRef, beesonTypeSpecBytes)
     beeson.superBeeSon = true
     const beesonBytes = beeson.serialize()
@@ -74,7 +73,7 @@ describe('superbeeson', () => {
     const typeSpecBytes = beeson.typeManager.serialize()
     const buddiesArray = beeson.typeManager.typeDefinitions.filter(t => t.marker === 'buddies')[0]
     const buddiesTypeSpecBytes = buddiesArray.beeSon.typeManager.serialize()
-    const typeRef = makeChunkedFile(buddiesTypeSpecBytes).address()
+    const typeRef = keccak256Hash(buddiesTypeSpecBytes)
     storage.storageSaverSync(typeRef, buddiesTypeSpecBytes)
 
     buddiesArray.beeSon.superBeeSon = true
