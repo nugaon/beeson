@@ -3,7 +3,7 @@ import { deserializeHeader } from './type-specification/header'
 import { deserializeArray, deserializeObject, ElementMaps } from './viewer/container'
 import { Type } from './types'
 import { Bytes, bytesToHex, equalBytes, keccak256Hash } from './utils'
-import { fileAddressFromInclusionProof } from '@fairdatasociety/bmt-js'
+import { ChunkInclusionProof, fileAddressFromInclusionProof } from '@fairdatasociety/bmt-js'
 
 export class BeeSonStore {
   public handlerMapping: Map<string, BeeSonHandler> = new Map()
@@ -48,23 +48,37 @@ export class BeeSonHandler {
    * @param dataSisterSegments sister segments of the data.
    * @param datasegmentIndex segment index position in the whole datablob
    * @param data data segment to prove
+   * @throws error if roothash does not encode DNA or data
    */
   public validate(
     rootHash: Uint8Array,
     headerSegment: Uint8Array,
     dnaSisterSegments: Uint8Array[],
     dataSisterSegments: Uint8Array[],
-    datasegmentIndex: string,
+    span: Bytes<8>,
+    datasegmentIndex: number,
     data: Uint8Array,
   ) {
     // TODO versioncheck from header
     if (bytesToHex(dnaSisterSegments[0]) !== this.superBeeSonRef) {
       throw new Error('SuperBeeSonReference is not matching')
     }
-    if (!equalBytes(rootHash, fileAddressFromInclusionProof(dnaSisterSegments, headerSegment, 0))) {
+    const dnaInclusionProof: ChunkInclusionProof<8>[] = [
+      {
+        span,
+        sisterSegments: dnaSisterSegments,
+      },
+    ]
+    const dataInclusionProof: ChunkInclusionProof<8>[] = [
+      {
+        span,
+        sisterSegments: dataSisterSegments,
+      },
+    ]
+    if (!equalBytes(rootHash, fileAddressFromInclusionProof(dnaInclusionProof, headerSegment, 0))) {
       throw new Error('DNA is not under rootHash')
     }
-    if (!equalBytes(rootHash, fileAddressFromInclusionProof(dataSisterSegments, data, datasegmentIndex))) {
+    if (!equalBytes(rootHash, fileAddressFromInclusionProof(dataInclusionProof, data, datasegmentIndex))) {
       throw new Error('DNA is not under rootHash')
     }
   }
