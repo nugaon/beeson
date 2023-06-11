@@ -41,40 +41,28 @@ export class BeeSonHandler {
   }
 
   /**
+   * Asserts data is subsumed under the RootHash
    *
    * @param rootHash hash to validate against
-   * @param headerSegment
-   * @param dnaSisterSegments
-   * @param dataSisterSegments sister segments of the data.
-   * @param datasegmentIndex segment index position in the whole datablob
+   * @param headerSegment encode beeson version and data type
+   * @param dnaInclusionProof inclusion proof data for DNA of beeSon (first 2 segments)
+   * @param dataInclusionProof inclusion proof for data in Data Implementation
+   * @param datasegmentIndex segment position in the whole datablob
    * @param data data segment to prove
    * @throws error if roothash does not encode DNA or data
    */
   public validate(
     rootHash: Uint8Array,
     headerSegment: Uint8Array,
-    dnaSisterSegments: Uint8Array[],
-    dataSisterSegments: Uint8Array[],
-    span: Bytes<8>,
+    dnaInclusionProof: ChunkInclusionProof<8>[],
+    dataInclusionProof: ChunkInclusionProof<8>[],
     datasegmentIndex: number,
     data: Uint8Array,
   ) {
     // TODO versioncheck from header
-    if (bytesToHex(dnaSisterSegments[0]) !== this.superBeeSonRef) {
+    if (bytesToHex(dnaInclusionProof[0].sisterSegments[0]) !== this.superBeeSonRef) {
       throw new Error('SuperBeeSonReference is not matching')
     }
-    const dnaInclusionProof: ChunkInclusionProof<8>[] = [
-      {
-        span,
-        sisterSegments: dnaSisterSegments,
-      },
-    ]
-    const dataInclusionProof: ChunkInclusionProof<8>[] = [
-      {
-        span,
-        sisterSegments: dataSisterSegments,
-      },
-    ]
     if (!equalBytes(rootHash, fileAddressFromInclusionProof(dnaInclusionProof, headerSegment, 0))) {
       throw new Error('DNA is not under rootHash')
     }
