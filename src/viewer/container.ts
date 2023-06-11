@@ -12,7 +12,7 @@ import { Bytes, bytesToString, segmentSize, SEGMENT_SIZE } from '../utils'
 import { ElementRandomAccess } from './types'
 
 export type ElementMaps = {
-  elementProps: Map<string, ElementRandomAccess>
+  elementProps: ElementRandomAccess[]
   superTypeRefs: Map<number, Bytes<32>>
 }
 
@@ -34,7 +34,7 @@ export function deserializeArray(data: Uint8Array): ElementMaps {
   const bytesUntilSuperBeeSonRefs = segmentsUntilSuperBeeSonRefs * SEGMENT_SIZE
 
   // deserialize typedefs
-  const elementProps: Map<string, ElementRandomAccess> = new Map()
+  const elementProps: ElementRandomAccess[] = []
   const superTypeRefs: Map<number, Bytes<32>> = new Map() // key is the element index
   let i = 0
   let j = 0 // superTypeDef index
@@ -56,7 +56,7 @@ export function deserializeArray(data: Uint8Array): ElementMaps {
       assertBeeSonType(type)
     }
 
-    elementProps.set(String(i), { segmentIndex, segmentLength, type })
+    elementProps.push({ segmentIndex, segmentLength, type })
     segmentIndex += segmentLength
 
     offset += ARRAY_TYPE_DEF_LENGTH
@@ -89,7 +89,7 @@ export function deserializeObject(data: Uint8Array): ElementMaps {
   const startMarkerByteIndex = offset + typeDefArrayLength * OBJECT_TYPE_DEF_LENGTH
 
   // deserialize typedefs
-  const elementProps: Map<string, ElementRandomAccess> = new Map()
+  const elementProps: ElementRandomAccess[] = []
   const superTypeRefs: Map<number, Bytes<32>> = new Map()
   let segmentIndex = 0
   let i = 0
@@ -115,7 +115,7 @@ export function deserializeObject(data: Uint8Array): ElementMaps {
       assertBeeSonType(type)
     }
 
-    elementProps.set(marker, { segmentIndex, segmentLength, type })
+    elementProps.push({ segmentIndex, segmentLength, type })
     segmentIndex += segmentLength
 
     offset += OBJECT_TYPE_DEF_LENGTH
